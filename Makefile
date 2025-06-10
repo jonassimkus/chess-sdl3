@@ -3,7 +3,7 @@ main.cpp:
 	make run
 
 compile:
-	g++ src/main/main.cpp -lSDL3 -o target/SDLChess.out -I /usr/include/SDL3 -I src/main/peices -I /usr/include/SDL3_image 
+	g++ src/main/main.cpp -lSDL3 -lSDL3_image -o target/SDLChess.out -I /usr/include/SDL3 -I src/main/peices -I /usr/include/SDL3_image -I src/main
 
 run:
 	target/SDLChess.out
