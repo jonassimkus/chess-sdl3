@@ -2,62 +2,14 @@
 #include <SDL_image.h>
 #include <string>
     
-Peice::Peice(SDL_Renderer* renderer, int x, int y, int team, int type){
+Peice::Peice(int x, int y, int team, int type){
     this->position.x = x;
     this->position.y = y;
     this->team = team;
     this->peice = type;
-    this->renderer = renderer;
-
-    if(team == -1){
-        return;
-    }
-
-    SDL_Surface* surface;
-
-    std::string peiceFile;
-
-    if(team == 0){
-        peiceFile = "w";
-    }else if (team==1){
-        peiceFile = "b";
-    }
-
-    if(peice == 0){
-        peiceFile += "p";
-    }
-    if(peice == 1){
-        peiceFile += "n";
-    }
-    if(peice == 2){
-        peiceFile += "b";
-    }
-    if(peice == 3){
-        peiceFile += "r";
-    }
-    if(peice == 4){
-        peiceFile += "q";
-    }
-    if(peice == 5){
-        peiceFile += "k";
-    }
-
-    std::string finalText = "./textures/" + peiceFile + ".png";
-
-    surface = IMG_Load(finalText.c_str());
-
-    texture = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_DestroySurface(surface);
 }
 
-void Peice::Draw(int cellSize){
-    if (team == -1 || peice == -1){
-        return;
-    }
-
-    SDL_FRect src = {0, 0, (float)texture->w, (float)texture->h};
-    SDL_FRect dst = {(float)position.x*cellSize, (float)position.y*cellSize, (float)cellSize, (float)cellSize};
-    SDL_RenderTexture(renderer, texture, &src, &dst);
+Peice::~Peice(){
 }
 
 bool Peice::IsOpponent(Peice* other){
@@ -72,8 +24,17 @@ bool Peice::IsOpponent(Peice* other){
     return false;
 }
 
+int Peice::GetOtherTeam(){
+    if(team == 1){
+        return 0;
+    }
+
+    return 1;
+}
+
 std::vector<Move*> Peice::GenerateMoves(Peice* board[64]){
     std::vector<Move*> moves = std::vector<Move*>();
+    std::vector<Peice*> peices;
 
     if (peice == 0){
         int direction = (team == 0 ? -1 : +1);
@@ -83,20 +44,22 @@ std::vector<Move*> Peice::GenerateMoves(Peice* board[64]){
         }
     
         if(board[(int)(position.x+(position.y+direction)*8)]->peice == -1){
-            std::vector<Peice*> peices = std::vector<Peice*>();
+            peices = std::vector<Peice*>();
+
             Move* move = new Move();
-            peices.push_back(new Peice(renderer, position.x, position.y + direction, team, 0));
-            peices.push_back(new Peice(renderer, position.x, position.y, -1, -1));
+            peices.push_back(new Peice( position.x, position.y + direction, team, 0));
+            peices.push_back(new Peice( position.x, position.y, -1, -1));
 
             move->updatedPeices = peices;
             moves.push_back(move);  
         }
 
         if(IsOpponent(board[(int)(position.x-1+(position.y+direction)*8)])){
-            std::vector<Peice*> peices = std::vector<Peice*>();
+            peices = std::vector<Peice*>();
+            
             Move* move = new Move();
-            peices.push_back(new Peice(renderer, position.x - 1, position.y + direction, team, 0));
-            peices.push_back(new Peice(renderer, position.x, position.y, -1, -1));
+            peices.push_back(new Peice( position.x - 1, position.y + direction, team, 0));
+            peices.push_back(new Peice( position.x, position.y, -1, -1));
 
             move->updatedPeices = peices;
             moves.push_back(move);  
@@ -104,10 +67,10 @@ std::vector<Move*> Peice::GenerateMoves(Peice* board[64]){
 
 
         if(IsOpponent(board[(int)(position.x+1+(position.y+direction)*8)])){
-            std::vector<Peice*> peices = std::vector<Peice*>();
+            peices = std::vector<Peice*>();
             Move* move = new Move();
-            peices.push_back(new Peice(renderer, position.x + 1, position.y + direction, team, 0));
-            peices.push_back(new Peice(renderer, position.x, position.y, -1, -1));
+            peices.push_back(new Peice( position.x + 1, position.y + direction, team, 0));
+            peices.push_back(new Peice( position.x, position.y, -1, -1));
 
             move->updatedPeices = peices;
             moves.push_back(move);  
@@ -120,13 +83,14 @@ std::vector<Move*> Peice::GenerateMoves(Peice* board[64]){
                 break;
             }
     
-            std::vector<Peice*> peices = std::vector<Peice*>();
+            peices = std::vector<Peice*>();
             Move* move = new Move();
             
             if(board[(int)(position.x+((position.y-y)*8))]->team != team){
-                peices.push_back(new Peice(renderer, position.x, position.y - y, team, peice));
-                peices.push_back(new Peice(renderer, position.x, position.y, -1, -1));
+                peices.push_back(new Peice( position.x, position.y - y, team, peice));
+                peices.push_back(new Peice( position.x, position.y, -1, -1));
             }else{
+                peices.clear();
                 delete move;
                 break;
             }
@@ -145,13 +109,14 @@ std::vector<Move*> Peice::GenerateMoves(Peice* board[64]){
                 break;
             }
 
-            std::vector<Peice*> peices = std::vector<Peice*>();
+            peices = std::vector<Peice*>();
             Move* move = new Move();
 
             if(board[(int)(position.x+((position.y+y)*8))]->team != team){
-                peices.push_back(new Peice(renderer, position.x, position.y + y, team, peice));
-                peices.push_back(new Peice(renderer, position.x, position.y, -1, -1));
+                peices.push_back(new Peice( position.x, position.y + y, team, peice));
+                peices.push_back(new Peice( position.x, position.y, -1, -1));
             }else{
+                peices.clear();
                 delete move;
                 break;
             }
@@ -169,13 +134,14 @@ std::vector<Move*> Peice::GenerateMoves(Peice* board[64]){
                 break;
             }
             
-            std::vector<Peice*> peices = std::vector<Peice*>();
+            peices = std::vector<Peice*>();
             Move* move = new Move();
             
             if(board[(int)(position.x+x+(position.y)*8)]->team != team){
-                peices.push_back(new Peice(renderer, position.x + x, position.y, team, peice));
-                peices.push_back(new Peice(renderer, position.x, position.y, -1, -1));
+                peices.push_back(new Peice( position.x + x, position.y, team, peice));
+                peices.push_back(new Peice( position.x, position.y, -1, -1));
             }else{
+                peices.clear();
                 delete move;
                 break;
             }
@@ -193,13 +159,14 @@ std::vector<Move*> Peice::GenerateMoves(Peice* board[64]){
                 break;
             }
 
-            std::vector<Peice*> peices = std::vector<Peice*>();
+            peices = std::vector<Peice*>();
             Move* move = new Move();
 
             if(board[(int)(position.x-x+(position.y)*8)]->team != team){
-                peices.push_back(new Peice(renderer, position.x - x, position.y, team, peice));
-                peices.push_back(new Peice(renderer, position.x, position.y, -1, -1));
+                peices.push_back(new Peice( position.x - x, position.y, team, peice));
+                peices.push_back(new Peice( position.x, position.y, -1, -1));
             }else{
+                peices.clear();
                 delete move;
                 break;
             }
@@ -220,13 +187,14 @@ std::vector<Move*> Peice::GenerateMoves(Peice* board[64]){
                 break;
             }
 
-            std::vector<Peice*> peices = std::vector<Peice*>();
+            peices = std::vector<Peice*>();
             Move* move = new Move();
 
             if(board[(int)(position.x+i+(position.y+i)*8)]->team != team){
-                peices.push_back(new Peice(renderer, position.x + i, position.y + i, team, peice));
-                peices.push_back(new Peice(renderer, position.x, position.y, -1, -1));
+                peices.push_back(new Peice( position.x + i, position.y + i, team, peice));
+                peices.push_back(new Peice( position.x, position.y, -1, -1));
             }else{
+                peices.clear();
                 delete move;
                 break;
             }
@@ -244,13 +212,14 @@ std::vector<Move*> Peice::GenerateMoves(Peice* board[64]){
                 break;
             }
 
-            std::vector<Peice*> peices = std::vector<Peice*>();
+            peices = std::vector<Peice*>();
             Move* move = new Move();
 
             if(board[(int)(position.x-i+(position.y+i)*8)]->team != team){
-                peices.push_back(new Peice(renderer, position.x - i, position.y + i, team, peice));
-                peices.push_back(new Peice(renderer, position.x, position.y, -1, -1));
+                peices.push_back(new Peice( position.x - i, position.y + i, team, peice));
+                peices.push_back(new Peice( position.x, position.y, -1, -1));
             }else{
+                peices.clear();
                 delete move;
                 break;
             }
@@ -268,13 +237,14 @@ std::vector<Move*> Peice::GenerateMoves(Peice* board[64]){
                 break;
             }
 
-            std::vector<Peice*> peices = std::vector<Peice*>();
+            peices = std::vector<Peice*>();
             Move* move = new Move();
 
             if(board[(int)(position.x+i+(position.y-i)*8)]->team != team){
-                peices.push_back(new Peice(renderer, position.x + i, position.y - i, team, peice));
-                peices.push_back(new Peice(renderer, position.x, position.y, -1, -1));
+                peices.push_back(new Peice( position.x + i, position.y - i, team, peice));
+                peices.push_back(new Peice( position.x, position.y, -1, -1));
             }else{
+                peices.clear();
                 delete move;
                 break;
             }
@@ -292,13 +262,14 @@ std::vector<Move*> Peice::GenerateMoves(Peice* board[64]){
                 break;
             }
 
-            std::vector<Peice*> peices = std::vector<Peice*>();
+            peices = std::vector<Peice*>();
             Move* move = new Move();
 
             if(board[(int)(position.x-i+(position.y-i)*8)]->team != team){
-                peices.push_back(new Peice(renderer, position.x - i, position.y - i, team, peice));
-                peices.push_back(new Peice(renderer, position.x, position.y, -1, -1));
+                peices.push_back(new Peice( position.x - i, position.y - i, team, peice));
+                peices.push_back(new Peice( position.x, position.y, -1, -1));
             }else{
+                peices.clear();
                 delete move;
                 break;
             }
@@ -319,11 +290,11 @@ std::vector<Move*> Peice::GenerateMoves(Peice* board[64]){
 
             if(position.x + offX < 8 && position.x + offX > -1 && position.y + offY < 8 && position.y + offY > -1){
                 if(board[(int)(position.x + offX + (position.y + offY)*8)]->team != team){
-                    std::vector<Peice*> peices = std::vector<Peice*>();
+                    peices = std::vector<Peice*>();
                     Move* move = new Move();
 
-                    peices.push_back(new Peice(renderer, position.x + offX, position.y + offY, team, peice));
-                    peices.push_back(new Peice(renderer, position.x, position.y, -1, -1));
+                    peices.push_back(new Peice( position.x + offX, position.y + offY, team, peice));
+                    peices.push_back(new Peice( position.x, position.y, -1, -1));
 
                     move->updatedPeices = peices;
                     moves.push_back(move);
@@ -337,11 +308,11 @@ std::vector<Move*> Peice::GenerateMoves(Peice* board[64]){
 
             if(position.x + offX < 8 && position.x + offX > -1 && position.y + offY < 8 && position.y + offY > -1){
                 if(board[(int)(position.x + offX + (position.y + offY)*8)]->team != team){
-                    std::vector<Peice*> peices = std::vector<Peice*>();
+                    peices = std::vector<Peice*>();
                     Move* move = new Move();
 
-                    peices.push_back(new Peice(renderer, position.x + offX, position.y + offY, team, peice));
-                    peices.push_back(new Peice(renderer, position.x, position.y, -1, -1));
+                    peices.push_back(new Peice( position.x + offX, position.y + offY, team, peice));
+                    peices.push_back(new Peice( position.x, position.y, -1, -1));
 
                     move->updatedPeices = peices;
                     moves.push_back(move);
@@ -360,11 +331,11 @@ std::vector<Move*> Peice::GenerateMoves(Peice* board[64]){
             }
 
             if(board[(int)(position.x - 1 + x + (position.y-1 + y)*8)]->team != team){
-                std::vector<Peice*> peices = std::vector<Peice*>();
+                peices = std::vector<Peice*>();
                 Move* move = new Move();
 
-                peices.push_back(new Peice(renderer, position.x - 1 + x, position.y - 1 + y, team, peice));
-                peices.push_back(new Peice(renderer, position.x, position.y, -1, -1));
+                peices.push_back(new Peice( position.x - 1 + x, position.y - 1 + y, team, peice));
+                peices.push_back(new Peice( position.x, position.y, -1, -1));
 
                 move->updatedPeices = peices;
                 moves.push_back(move);

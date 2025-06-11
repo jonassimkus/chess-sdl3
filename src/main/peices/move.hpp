@@ -6,4 +6,6 @@ class Peice;
 
 struct Move{
     std::vector<Peice*> updatedPeices;
+    bool safe = true;
+    bool free = true;
 }; 
