@@ -7,7 +7,7 @@
 #include "move.hpp"
 #include <algorithm>
 
-static int WIDTH = 1700;
+static int WIDTH = 1024;
 static int HEIGHT = 1024;
 static int CELL_W = WIDTH / 8;
 static int CELL_H = HEIGHT / 8;
@@ -166,6 +166,8 @@ int main(){
         return 1;
     }
 
+    SDL_SetWindowResizable(window, true);
+
     bool running = true;
 
     Vector2 mouse;
@@ -271,6 +273,12 @@ int main(){
                     }
                 }
             }
+
+            if (event.type == SDL_EVENT_WINDOW_RESIZED){
+                SDL_GetWindowSize(window, &WIDTH, &HEIGHT);
+                CELL_W = WIDTH / 8;
+                CELL_H = HEIGHT / 8;
+            }
         }
 
         SDL_SetRenderDrawColor(renderer, 15, 15, 15, 255);
@@ -285,6 +293,8 @@ int main(){
                 }
                 boardSquare.x = x * CELL_W;
                 boardSquare.y = y * CELL_H;
+                boardSquare.w = CELL_W;
+                boardSquare.h = CELL_H;
                 SDL_RenderFillRect(renderer, &boardSquare);
                 Peice* peice = peices[x+(y*8)];
                 
