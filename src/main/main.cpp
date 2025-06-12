@@ -18,6 +18,7 @@ std::vector<Peice> ProcessMove(Peice peices[64], Move move){
     std::vector<Peice> newBoard = std::vector<Peice>();
     for(int i = 0; i < 64; ++i){
         newBoard.push_back(peices[i]);
+        newBoard[i].enpassant = false;
     }
 
     for(Peice peice : move.updatedPeices){
@@ -64,9 +65,10 @@ bool SafeMove(Peice peices[64], Move move){
         tempBoard[i] = processedMove[i];
     }
 
-    processedMove.clear();
-
     Peice king = FindKing(tempBoard, peice.team);
+    if(king.peice == -1){
+        return true;
+    }
 
     bool safe = true;
     
@@ -91,6 +93,89 @@ bool SafeMove(Peice peices[64], Move move){
     }
 
     return safe;
+}
+
+bool IsAttacked(Peice peices[64], Peice peice, int team){
+    bool attacked = false;
+
+    for(int i = 0; i < 64; ++i){
+        Peice peice1 = peices[i];
+        if(peice1.team != team || peice1.team == -1){
+            continue;
+        }
+
+        std::vector<Move> moves = peice1.GenerateMoves(peices);
+
+        for(Move move1 : moves){
+            for(Peice pMove : move1.updatedPeices){
+                if(pMove.position.x == peice.position.x && pMove.position.y == peice.position.y){
+                    attacked = true;
+                    break;
+                }
+            }
+        }
+
+        moves.clear();
+    }
+
+    return attacked;
+}
+
+bool IsMate(Peice peices[64], int team){
+    Peice king = FindKing(peices, team);
+
+    if(king.attacked[team]){
+        for(int i = 0; i < 64; ++i){
+            if (peices[i].team != team){
+                continue;
+            }
+
+            std::vector<Move> moves = peices[i].GenerateMoves(peices);
+            for (Move move : moves){
+                if(move.updatedPeices[0].position.x == -1 || move.updatedPeices[1].position.y == -1){
+                    continue;
+                }
+                if (SafeMove(peices, move)){
+                    return false;
+                }
+            }
+        }
+    }else{
+        return false;
+    }
+
+    return true;
+}
+
+void ResetBoard(Peice *peices){
+    peices[0] = Peice( 0, 0, 1, 3,true);
+    peices[7] = Peice( 7, 0, 1, 3,true);
+    peices[1] = Peice( 1, 0, 1, 1,true);
+    peices[6] = Peice( 6, 0, 1, 1,true);
+    peices[2] = Peice( 2, 0, 1, 2,true);
+    peices[5] = Peice( 5, 0, 1, 2,true);
+    peices[3] = Peice( 3, 0, 1, 4,true);
+    peices[4] = Peice( 4, 0, 1, 5,true);
+
+    peices[0+(7*8)] = Peice( 0, 7, 0, 3,true);
+    peices[7+(7*8)] = Peice( 7, 7, 0, 3,true);
+    peices[1+(7*8)] = Peice( 1, 7, 0, 1,true);
+    peices[6+(7*8)] = Peice( 6, 7, 0, 1,true);
+    peices[2+(7*8)] = Peice( 2, 7, 0, 2,true);
+    peices[5+(7*8)] = Peice( 5, 7, 0, 2,true);
+    peices[3+(7*8)] = Peice( 3, 7, 0, 4,true);
+    peices[4+(7*8)] = Peice( 4, 7, 0, 5,true);
+
+    for(int x = 0; x < 8; ++x){
+        peices[x+8] = Peice( x, 1, 1, 0 ,true);
+        peices[x+(6*8)] = Peice( x, 6, 0, 0, true);
+    }
+
+    for(int y = 0; y < 4; ++y){
+        for(int x = 0; x < 8; ++x){
+            peices[x+((y+2)*8)] = Peice( x, y, -1, -1);
+        }
+    } 
 }
 
 SDL_Texture* LoadPeiceTexture(SDL_Renderer* renderer, int team, int peice){
@@ -181,38 +266,7 @@ int main(){
     Peice selectedPeice;
     std::vector<Move> moves;
     Peice peices[64] = {};
-
-    peices[0] = Peice( 0, 0, 1, 3);
-    peices[7] = Peice( 7, 0, 1, 3);
-    peices[1] = Peice( 1, 0, 1, 1);
-    peices[6] = Peice( 6, 0, 1, 1);
-    peices[2] = Peice( 2, 0, 1, 2);
-    peices[5] = Peice( 5, 0, 1, 2);
-    peices[3] = Peice( 3, 0, 1, 4);
-    peices[4] = Peice( 4, 0, 1, 5);
-
-    peices[0+(7*8)] = Peice( 0, 7, 0, 3);
-    peices[7+(7*8)] = Peice( 7, 7, 0, 3);
-    peices[1+(7*8)] = Peice( 1, 7, 0, 1);
-    peices[6+(7*8)] = Peice( 6, 7, 0, 1);
-    peices[2+(7*8)] = Peice( 2, 7, 0, 2);
-    peices[5+(7*8)] = Peice( 5, 7, 0, 2);
-    peices[3+(7*8)] = Peice( 3, 7, 0, 4);
-    peices[4+(7*8)] = Peice( 4, 7, 0, 5);
-
-    for(int x = 0; x < 8; ++x){
-        peices[x+8] = Peice( x, 1, 1, 0);
-    }
-
-    for(int x = 0; x < 8; ++x){
-        peices[x+(6*8)] = Peice( x, 6, 0, 0);
-    }
-
-    for(int y = 0; y < 4; ++y){
-        for(int x = 0; x < 8; ++x){
-            peices[x+((y+2)*8)] = Peice( x, y, -1, -1);
-        }
-    }
+    ResetBoard(peices);
 
     while (running){
         selectedPeice = Peice();
@@ -239,6 +293,7 @@ int main(){
                             if(move.updatedPeices[0].position.x == x && move.safe){
                                 if(move.updatedPeices[0].position.y == y){
                                     std::vector<Peice> processedMove = ProcessMove(peices, move);
+                                    TURN += 1;
                                     for (int i = 0; i < 64; ++i){
                                         peices[i] = processedMove[i];
                                     }
@@ -250,7 +305,7 @@ int main(){
                         select.y = -1;
                     }
                     else{
-                        if(peices[x+y*8].peice != -1){
+                        if(peices[x+y*8].peice != -1 && peices[x+y*8].team == TURN%2){
                             select.x = x;
                             select.y = y;
                         }
@@ -291,29 +346,43 @@ int main(){
             }
         }
 
-
-
         if(selectedPeice.peice != -1){
             moves = selectedPeice.GenerateMoves(peices);
         }else{
             moves.clear();
         }
 
-        for(Move move : moves){
-            Vector2 movePos = move.updatedPeices[0].position;
+        for(int i = 0; i < 64; ++i){
+            peices[i].attacked[0] = IsAttacked(peices, peices[i], 1);
+            peices[i].attacked[1] = IsAttacked(peices, peices[i], 0);
+        }
 
-            if(!SafeMove(peices, move)){
-                move.safe = false;
+        if(IsMate(peices, 0)){
+            ResetBoard(peices);
+            std::cout<<"Black has won!" <<std::endl;
+        }
+
+        if(IsMate(peices, 1)){
+            ResetBoard(peices);
+            std::cout<<"White has won!" <<std::endl;
+        }
+
+
+        for(int i = 0; i < moves.size(); ++i){
+            Vector2 movePos = moves[i].updatedPeices[0].position;
+
+            if(!SafeMove(peices, moves[i])){
+                moves[i].safe = false;
                 continue;
             }
 
             if(peices[(int)(movePos.x + movePos.y*8)].peice != -1){
                 SDL_FRect src = {0, 0, (float)circle->w, (float)circle->h};
-                SDL_FRect dst = {move.updatedPeices[0].position.x*CELL_W, move.updatedPeices[0].position.y*CELL_H, (float)CELL_W, (float)CELL_H};
+                SDL_FRect dst = {moves[i].updatedPeices[0].position.x*CELL_W, moves[i].updatedPeices[0].position.y*CELL_H, (float)CELL_W, (float)CELL_H};
                 SDL_RenderTexture(renderer, circle, &src, &dst);
             }else{
                 SDL_FRect src = {0, 0, (float)dot->w, (float)dot->h};
-                SDL_FRect dst = {move.updatedPeices[0].position.x*CELL_W, move.updatedPeices[0].position.y*CELL_H, (float)CELL_W, (float)CELL_H};
+                SDL_FRect dst = {moves[i].updatedPeices[0].position.x*CELL_W, moves[i].updatedPeices[0].position.y*CELL_H, (float)CELL_W, (float)CELL_H};
                 SDL_RenderTexture(renderer, dot, &src, &dst);
             }
         }

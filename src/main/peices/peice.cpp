@@ -5,6 +5,8 @@
 Peice::Peice(){
     peice = -1;
     team = -1;
+    position.x=-1;
+    position.y=-1;
 }
 
 Peice::Peice(int x, int y, int team, int type){
@@ -12,6 +14,16 @@ Peice::Peice(int x, int y, int team, int type){
     this->position.y = y;
     this->team = team;
     this->peice = type;
+    first = false;
+}
+
+
+Peice::Peice(int x, int y, int team, int type, bool first){
+    this->position.x = x;
+    this->position.y = y;
+    this->team = team;
+    this->peice = type;
+    this->first = first;
 }
 
 Peice::~Peice(){
@@ -47,12 +59,31 @@ std::vector<Move> Peice::GenerateMoves(Peice board[64]){
         if(position.y + direction < 0 && position.y + direction > 7){
             return moves;
         }
+
+        bool promote = false;
+        if(position.y + direction == 0 || position.y  + direction == 7){
+            promote = true;
+        }
     
         if(board[(int)(position.x+(position.y+direction)*8)].peice == -1){
+            if(first && board[(int)(position.x+(position.y+direction+direction)*8)].peice == -1){
+                peices = std::vector<Peice>();
+
+                Move move;
+                Peice pawn = Peice( position.x, position.y + direction*2, team, 0, false);
+                pawn.enpassant = true;
+
+                peices.push_back(pawn);
+                peices.push_back(Peice( position.x, position.y, -1, -1));
+
+                move.updatedPeices = peices;
+                moves.push_back(move);  
+            }   
+
             peices = std::vector<Peice>();
 
             Move move;
-            peices.push_back(Peice( position.x, position.y + direction, team, 0));
+            peices.push_back(Peice( position.x, position.y + direction, team, (promote == false ? 0 : 4), false));
             peices.push_back(Peice( position.x, position.y, -1, -1));
 
             move.updatedPeices = peices;
@@ -63,7 +94,7 @@ std::vector<Move> Peice::GenerateMoves(Peice board[64]){
             peices = std::vector<Peice>();
             
             Move move;
-            peices.push_back(Peice( position.x - 1, position.y + direction, team, 0));
+            peices.push_back(Peice( position.x - 1, position.y + direction, team, (promote == false ? 0 : 4), false));
             peices.push_back(Peice( position.x, position.y, -1, -1));
 
             move.updatedPeices = peices;
@@ -75,7 +106,31 @@ std::vector<Move> Peice::GenerateMoves(Peice board[64]){
             peices = std::vector<Peice>();
  
             Move move;
-            peices.push_back(Peice( position.x + 1, position.y + direction, team, 0));
+            peices.push_back(Peice( position.x + 1, position.y + direction, team, (promote == false ? 0 : 4), false));
+            peices.push_back(Peice( position.x, position.y, -1, -1));
+
+            move.updatedPeices = peices;
+            moves.push_back(move);  
+        }
+
+        if(IsOpponent(board[(int)(position.x-1+(position.y)*8)]) && board[(int)(position.x-1+(position.y)*8)].enpassant){
+            peices = std::vector<Peice>();
+            
+            Move move;
+            peices.push_back(Peice( position.x - 1, position.y + direction, team, (promote == false ? 0 : 4), false));
+            peices.push_back(Peice( position.x - 1, position.y, -1, -1));
+            peices.push_back(Peice( position.x, position.y, -1, -1));
+
+            move.updatedPeices = peices;
+            moves.push_back(move);  
+        }
+
+        if(IsOpponent(board[(int)(position.x+1+(position.y)*8)]) && board[(int)(position.x+1+(position.y)*8)].enpassant){
+            peices = std::vector<Peice>();
+            
+            Move move;
+            peices.push_back(Peice( position.x + 1, position.y + direction, team, (promote == false ? 0 : 4), false));
+            peices.push_back(Peice( position.x + 1, position.y, -1, -1));
             peices.push_back(Peice( position.x, position.y, -1, -1));
 
             move.updatedPeices = peices;
@@ -333,6 +388,45 @@ std::vector<Move> Peice::GenerateMoves(Peice board[64]){
 
                 move.updatedPeices = peices;
                 moves.push_back(move);
+            }
+        }
+
+        // Most beautiful castling code <3
+        if(first && !attacked[team]){
+            if(board[7+(int)position.y*8].first){
+                if(board[(int)(position.x+1)+(int)position.y*8].peice==-1 && !board[(int)(position.x+1)+(int)position.y*8].attacked[team]){
+                    if(board[(int)(position.x+2)+(int)position.y*8].peice==-1 && !board[(int)(position.x+2)+(int)position.y*8].attacked[team]){
+                        peices = std::vector<Peice>();
+                        Move move;
+
+                        peices.push_back(Peice( position.x+2, position.y, team, 5));
+                        peices.push_back(Peice( position.x+1, position.y, team, 3));
+                        peices.push_back(Peice( 7, position.y, -1, -1));
+                        peices.push_back(Peice( position.x, position.y, -1, -1));
+
+                        move.updatedPeices = peices;
+                        moves.push_back(move);
+                    }
+                }
+            }
+
+            if(board[(int)position.y*8].first){
+                if(board[(int)(position.x-1)+(int)position.y*8].peice==-1 && !board[(int)(position.x-1)+(int)position.y*8].attacked[team]){
+                    if(board[(int)(position.x-2)+(int)position.y*8].peice==-1 && !board[(int)(position.x-2)+(int)position.y*8].attacked[team]){
+                        if(board[(int)(position.x-3)+(int)position.y*8].peice==-1){
+                            peices = std::vector<Peice>();
+                            Move move;
+
+                            peices.push_back(Peice( position.x-2, position.y, team, 5));
+                            peices.push_back(Peice( position.x-1, position.y, team, 3));
+                            peices.push_back(Peice( 0, position.y, -1, -1));
+                            peices.push_back(Peice( position.x, position.y, -1, -1));
+
+                            move.updatedPeices = peices;
+                            moves.push_back(move);
+                        }
+                    }
+                }
             }
         }
     }
