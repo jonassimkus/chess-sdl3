@@ -7,61 +7,58 @@
 #include "move.hpp"
 #include <algorithm>
 
-static int WIDTH = 1024;
-static int HEIGHT = 1024;
+static int WIDTH = 720;
+static int HEIGHT = 720;
 static int CELL_W = WIDTH / 8;
 static int CELL_H = HEIGHT / 8;
 static int TURN = 0;
 
 
-std::vector<Peice*> ProcessMove(Peice* peices[64], Move* move){
-    std::vector<Peice*> newBoard = std::vector<Peice*>();
+std::vector<Peice> ProcessMove(Peice peices[64], Move move){
+    std::vector<Peice> newBoard = std::vector<Peice>();
     for(int i = 0; i < 64; ++i){
         newBoard.push_back(peices[i]);
     }
 
-    for(Peice* peice : move->updatedPeices){
-        newBoard[peice->position.x + peice->position.y*8] = peice;
+    for(Peice peice : move.updatedPeices){
+        newBoard[peice.position.x + peice.position.y*8] = peice;
     }
     
-    move->free = false;
-
     return newBoard;
 } 
 
-Peice* FindKing(Peice* peices[64], int team){
+Peice FindKing(Peice peices[64], int team){
     for(int i = 0; i < 64; ++i){
-        Peice* peice = peices[i];
-        if(peice->team == team && peice->peice==5){
+        Peice peice = peices[i];
+        if(peice.team == team && peice.peice==5){
             return peice;
         }
     }
 
-    return nullptr;
+    return Peice();
 }
 
-void DrawPeice(SDL_Renderer* renderer, SDL_Texture* textures[12],Peice* peice){
-    if (peice->team == -1 || peice->peice == -1){
+void DrawPeice(SDL_Renderer* renderer, SDL_Texture* textures[12],Peice peice){
+    if (peice.team == -1 || peice.peice == -1){
         return;
     }
     
-    SDL_Texture* texture = textures[peice->peice + (peice->team == 1 ? 6 : 0)];
+    SDL_Texture* texture = textures[peice.peice + (peice.team == 1 ? 6 : 0)];
 
     SDL_FRect src = {0, 0, (float)texture->w, (float)texture->h};
-    SDL_FRect dst = {(float)peice->position.x*CELL_W, (float)peice->position.y*CELL_H, (float)CELL_W, (float)CELL_H};
+    SDL_FRect dst = {(float)peice.position.x*CELL_W, (float)peice.position.y*CELL_H, (float)CELL_W, (float)CELL_H};
     SDL_RenderTexture(renderer, texture, &src, &dst);
 }
 
-bool SafeMove(Peice* peices[64], Move* move){
-    Peice* peice = move->updatedPeices[0];
+bool SafeMove(Peice peices[64], Move move){
+    Peice peice = move.updatedPeices[0];
 
-    Peice* tempBoard[64];
+    Peice tempBoard[64];
     for(int i = 0; i< 64; ++i){
         tempBoard[i] = peices[i];
     } 
 
-    std::vector<Peice*> processedMove = ProcessMove(tempBoard, move);
-    move->free = true;
+    std::vector<Peice> processedMove = ProcessMove(tempBoard, move);
 
     for (int i = 0; i < 64; ++i){
         tempBoard[i] = processedMove[i];
@@ -69,41 +66,28 @@ bool SafeMove(Peice* peices[64], Move* move){
 
     processedMove.clear();
 
-    Peice* king = FindKing(tempBoard, peice->team);
-
-    if(king == nullptr){
-        return true;
-    }
+    Peice king = FindKing(tempBoard, peice.team);
 
     bool safe = true;
     
     for(int i = 0; i < 64; ++i){
-        Peice* peice1 = tempBoard[i];
-        if(peice1->team == peice->team){
+        Peice peice1 = tempBoard[i];
+        if(peice1.team == peice.team){
             continue;
         }
 
-        std::vector<Move*> moves = peice1->GenerateMoves(tempBoard);
-        for(Move* move1 : moves){
-            for(Peice* pMove : move1->updatedPeices){
-                if(pMove->position.x == king->position.x && pMove->position.y == king->position.y){
+        std::vector<Move> moves = peice1.GenerateMoves(tempBoard);
+
+        for(Move move1 : moves){
+            for(Peice pMove : move1.updatedPeices){
+                if(pMove.position.x == king.position.x && pMove.position.y == king.position.y){
                     safe = false;
                     break;
                 }
             }
         }
 
-        for(Move* move1: moves){
-            for(int i = 0; i < move1->updatedPeices.size(); ++i){
-               delete move1->updatedPeices[0];
-               move1->updatedPeices.erase(move1->updatedPeices.begin());
-            }
-        }
-
-        for(int i = 0; i < moves.size(); ++i){
-            delete moves[0];
-            moves.erase(moves.begin());
-        }
+        moves.clear();
     }
 
     return safe;
@@ -194,44 +178,44 @@ int main(){
     peiceTextures[10] = LoadPeiceTexture(renderer, 1, 4);
     peiceTextures[11] = LoadPeiceTexture(renderer, 1, 5);
 
-    Peice* selectedPeice;
-    std::vector<Move*> moves;
-    Peice* peices[64] = {};
+    Peice selectedPeice;
+    std::vector<Move> moves;
+    Peice peices[64] = {};
 
-    peices[0] = new Peice( 0, 0, 1, 3);
-    peices[7] = new Peice( 7, 0, 1, 3);
-    peices[1] = new Peice( 1, 0, 1, 1);
-    peices[6] = new Peice( 6, 0, 1, 1);
-    peices[2] = new Peice( 2, 0, 1, 2);
-    peices[5] = new Peice( 5, 0, 1, 2);
-    peices[3] = new Peice( 3, 0, 1, 4);
-    peices[4] = new Peice( 4, 0, 1, 5);
+    peices[0] = Peice( 0, 0, 1, 3);
+    peices[7] = Peice( 7, 0, 1, 3);
+    peices[1] = Peice( 1, 0, 1, 1);
+    peices[6] = Peice( 6, 0, 1, 1);
+    peices[2] = Peice( 2, 0, 1, 2);
+    peices[5] = Peice( 5, 0, 1, 2);
+    peices[3] = Peice( 3, 0, 1, 4);
+    peices[4] = Peice( 4, 0, 1, 5);
 
-    peices[0+(7*8)] = new Peice( 0, 7, 0, 3);
-    peices[7+(7*8)] = new Peice( 7, 7, 0, 3);
-    peices[1+(7*8)] = new Peice( 1, 7, 0, 1);
-    peices[6+(7*8)] = new Peice( 6, 7, 0, 1);
-    peices[2+(7*8)] = new Peice( 2, 7, 0, 2);
-    peices[5+(7*8)] = new Peice( 5, 7, 0, 2);
-    peices[3+(7*8)] = new Peice( 3, 7, 0, 4);
-    peices[4+(7*8)] = new Peice( 4, 7, 0, 5);
+    peices[0+(7*8)] = Peice( 0, 7, 0, 3);
+    peices[7+(7*8)] = Peice( 7, 7, 0, 3);
+    peices[1+(7*8)] = Peice( 1, 7, 0, 1);
+    peices[6+(7*8)] = Peice( 6, 7, 0, 1);
+    peices[2+(7*8)] = Peice( 2, 7, 0, 2);
+    peices[5+(7*8)] = Peice( 5, 7, 0, 2);
+    peices[3+(7*8)] = Peice( 3, 7, 0, 4);
+    peices[4+(7*8)] = Peice( 4, 7, 0, 5);
 
     for(int x = 0; x < 8; ++x){
-        peices[x+8] = new Peice( x, 1, 1, 0);
+        peices[x+8] = Peice( x, 1, 1, 0);
     }
 
     for(int x = 0; x < 8; ++x){
-        peices[x+(6*8)] = new Peice( x, 6, 0, 0);
+        peices[x+(6*8)] = Peice( x, 6, 0, 0);
     }
 
     for(int y = 0; y < 4; ++y){
         for(int x = 0; x < 8; ++x){
-            peices[x+((y+2)*8)] = new Peice( x, y, -1, -1);
+            peices[x+((y+2)*8)] = Peice( x, y, -1, -1);
         }
     }
 
     while (running){
-        selectedPeice = nullptr;
+        selectedPeice = Peice();
 
 		SDL_GetMouseState(&mouse.x, &mouse.y);
 
@@ -251,10 +235,10 @@ int main(){
                     int y = (int)(mouse.y / CELL_H);
                     
                     if (select.x != -1 || select.y != -1){
-                        for(Move* move : moves){
-                            if(move->updatedPeices[0]->position.x == x && move->safe){
-                                if(move->updatedPeices[0]->position.y == y){
-                                    std::vector<Peice*> processedMove = ProcessMove(peices, move);
+                        for(Move move : moves){
+                            if(move.updatedPeices[0].position.x == x && move.safe){
+                                if(move.updatedPeices[0].position.y == y){
+                                    std::vector<Peice> processedMove = ProcessMove(peices, move);
                                     for (int i = 0; i < 64; ++i){
                                         peices[i] = processedMove[i];
                                     }
@@ -266,7 +250,7 @@ int main(){
                         select.y = -1;
                     }
                     else{
-                        if(peices[x+y*8]->peice != -1){
+                        if(peices[x+y*8].peice != -1){
                             select.x = x;
                             select.y = y;
                         }
@@ -296,10 +280,9 @@ int main(){
                 boardSquare.w = CELL_W;
                 boardSquare.h = CELL_H;
                 SDL_RenderFillRect(renderer, &boardSquare);
-                Peice* peice = peices[x+(y*8)];
+                Peice peice = peices[x+(y*8)];
                 
                 if(select.x != x || select.y != y){
-                   // peice->Draw(CELL_SIZE);
                     DrawPeice(renderer, peiceTextures, peice);
 
                 }else{
@@ -309,50 +292,34 @@ int main(){
         }
 
 
-        for(Move* move : moves){
-            if(move->free == false){
-                continue;
-            }
 
-            int beginSize = move->updatedPeices.size()-1;
-            for(int i = 0; i < beginSize; ++i){
-                delete move->updatedPeices[0];
-            }
-        }
-
-        for(int i = 0; i < moves.size(); ++ i){
-            delete moves[i];
-        }
-
-
-        if(selectedPeice){
-            moves = selectedPeice->GenerateMoves(peices);
+        if(selectedPeice.peice != -1){
+            moves = selectedPeice.GenerateMoves(peices);
         }else{
-            moves = std::vector<Move*>();
+            moves.clear();
         }
 
-        for(Move* move : moves){
-            Vector2 movePos = move->updatedPeices[0]->position;
+        for(Move move : moves){
+            Vector2 movePos = move.updatedPeices[0].position;
 
             if(!SafeMove(peices, move)){
-                move->safe = false;
+                move.safe = false;
                 continue;
             }
 
-            if(peices[(int)(movePos.x + movePos.y*8)]->peice != -1){
+            if(peices[(int)(movePos.x + movePos.y*8)].peice != -1){
                 SDL_FRect src = {0, 0, (float)circle->w, (float)circle->h};
-                SDL_FRect dst = {move->updatedPeices[0]->position.x*CELL_W, move->updatedPeices[0]->position.y*CELL_H, (float)CELL_W, (float)CELL_H};
+                SDL_FRect dst = {move.updatedPeices[0].position.x*CELL_W, move.updatedPeices[0].position.y*CELL_H, (float)CELL_W, (float)CELL_H};
                 SDL_RenderTexture(renderer, circle, &src, &dst);
             }else{
                 SDL_FRect src = {0, 0, (float)dot->w, (float)dot->h};
-                SDL_FRect dst = {move->updatedPeices[0]->position.x*CELL_W, move->updatedPeices[0]->position.y*CELL_H, (float)CELL_W, (float)CELL_H};
+                SDL_FRect dst = {move.updatedPeices[0].position.x*CELL_W, move.updatedPeices[0].position.y*CELL_H, (float)CELL_W, (float)CELL_H};
                 SDL_RenderTexture(renderer, dot, &src, &dst);
             }
-       
         }
 
-        if(selectedPeice){
-            SDL_Texture* texture = peiceTextures[selectedPeice->peice + (selectedPeice->team == 1 ? 6 : 0)];
+        if(selectedPeice.peice != -1){
+            SDL_Texture* texture = peiceTextures[selectedPeice.peice + (selectedPeice.team == 1 ? 6 : 0)];
 
             SDL_FRect src = {0, 0, (float)texture->w, (float)texture->h};
             SDL_FRect dst = {mouse.x - CELL_W/2, mouse.y - CELL_H/2, (float)CELL_W, (float)CELL_H};

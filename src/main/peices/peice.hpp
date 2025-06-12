@@ -13,12 +13,13 @@ public:
     // -1 no peice, 0 pawn, 1 knight, 2 bishop, 3 rook, 4 queen, 5 king
     int peice; 
 
+    Peice();
     Peice(int x, int y, int team, int type);
     ~Peice();
     
-    bool IsOpponent(Peice* other);
+    bool IsOpponent(Peice other);
     int GetOtherTeam();
 
-    std::vector<Move*> GenerateMoves(Peice* board[64]);
+    std::vector<Move> GenerateMoves(Peice board[64]);
 
 };
