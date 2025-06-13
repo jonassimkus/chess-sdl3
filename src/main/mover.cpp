@@ -28,7 +28,6 @@ Peice FindKing(Peice peices[64], int team){
 }
 
 
-
 bool SafeMove(Peice peices[64], Move move){
     Peice peice = move.updatedPeices[0];
 

@@ -90,7 +90,7 @@ std::vector<Move> Peice::GenerateMoves(Peice board[64]){
             moves.push_back(move);  
         }
 
-        if(IsOpponent(board[(int)(position.x-1+(position.y+direction)*8)])){
+        if(position.x-1 >= 0 && position.y+direction >= 0 && position.y+direction <= 7 && IsOpponent(board[(int)(position.x-1+(position.y+direction)*8)])){
             peices = std::vector<Peice>();
             
             Move move;
@@ -102,7 +102,7 @@ std::vector<Move> Peice::GenerateMoves(Peice board[64]){
         }
 
 
-        if(IsOpponent(board[(int)(position.x+1+(position.y+direction)*8)])){
+        if(position.x+1 >= 0 && position.y+direction >= 0 && position.y+direction <= 7 && IsOpponent(board[(int)(position.x+1+(position.y+direction)*8)])){
             peices = std::vector<Peice>();
  
             Move move;
@@ -113,7 +113,7 @@ std::vector<Move> Peice::GenerateMoves(Peice board[64]){
             moves.push_back(move);  
         }
 
-        if(IsOpponent(board[(int)(position.x-1+(position.y)*8)]) && board[(int)(position.x-1+(position.y)*8)].enpassant){
+        if(position.x-1 >= 0 && position.y+direction >= 0 && position.y+direction <= 7 && IsOpponent(board[(int)(position.x-1+(position.y)*8)]) && board[(int)(position.x-1+(position.y)*8)].enpassant){
             peices = std::vector<Peice>();
             
             Move move;
@@ -125,7 +125,7 @@ std::vector<Move> Peice::GenerateMoves(Peice board[64]){
             moves.push_back(move);  
         }
 
-        if(IsOpponent(board[(int)(position.x+1+(position.y)*8)]) && board[(int)(position.x+1+(position.y)*8)].enpassant){
+        if(position.x+1 >= 0 && position.y+direction >= 0 && position.y+direction <= 7 && IsOpponent(board[(int)(position.x+1+(position.y)*8)]) && board[(int)(position.x+1+(position.y)*8)].enpassant){
             peices = std::vector<Peice>();
             
             Move move;

@@ -151,30 +151,17 @@ float EvaluateMove(Peice peices[64], Move move){
 }
 
 /*
-int maxi( int depth ) {
-    if ( depth == 0 ) return Evaluate();
-    int max = -oo;
-    for ( all moves) {
-        score = mini( depth - 1 );
-        if( score > max )
-            max = score;
-    }
-    return max;
-}
+1. Get all possible current moves
+2. Do enemy best move
+3. Get all possible moves
+4. See which one gives best evaluation
 
-int mini( int depth ) {
-    if ( depth == 0 ) return -Evaluate();
-    int min = +oo;
-    for ( all moves) {
-        score = maxi( depth - 1 );
-        if( score < min )
-            min = score;
-    }
-    return min;
-}*/
+2-3 can happen more than once with depth value
+*/
 
 Move GetBestMove(Peice peices[64], int team){
-    Move best = Move();
+    Move* best = new Move();
 
-    return best;
+
+    return *best;
 }

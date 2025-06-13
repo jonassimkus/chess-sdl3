@@ -201,6 +201,13 @@ int main(){
                 CELL_W = WIDTH / 8;
                 CELL_H = HEIGHT / 8;
             }
+
+            if(event.type == SDL_EVENT_KEY_DOWN){
+                if(event.key.scancode == SDL_SCANCODE_R){
+                    ResetBoard(peices);
+                    TURN = 0;
+                }
+            }
         }
 
         SDL_SetRenderDrawColor(renderer, 15, 15, 15, 255);
@@ -240,22 +247,21 @@ int main(){
             peices[i].attacked[1] = IsAttacked(peices, peices[i], 0);
         }
 
-        /*
         if(TURN%2 == 1){
             Move best = GetBestMove(peices, TURN%2);
-            TURN += 1;
+           // TURN += 1;
 
             if(best.updatedPeices.size() != 0){
                 std::cout << TURN%2 << std::endl;
             }
 
-            std::vector<Peice> peices1 = ProcessMove(peices, best);
+            //std::vector<Peice> peices1 = ProcessMove(peices, best);
 
             for (int i = 0; i < 64; ++i){
-                peices[i] = peices1[i];
+              //  peices[i] = peices1[i];
             }
         }
-  */    
+     
 
         if(IsMate(peices, 0)){
             ResetBoard(peices);
