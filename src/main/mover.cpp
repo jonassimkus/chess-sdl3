@@ -2,6 +2,7 @@
 
 #ifndef MOVER
 #define MOVER
+
 std::vector<Peice> ProcessMove(Peice peices[64], Move move){
     std::vector<Peice> newBoard = std::vector<Peice>();
     for(int i = 0; i < 64; ++i){
@@ -12,6 +13,8 @@ std::vector<Peice> ProcessMove(Peice peices[64], Move move){
     for(Peice peice : move.updatedPeices){
         newBoard[peice.position.x + peice.position.y*8] = peice;
     }
+
+    
     
     return newBoard;
 } 
@@ -99,6 +102,7 @@ bool IsAttacked(Peice peices[64], Peice peice, int team){
     return attacked;
 }
 
+
 bool IsMate(Peice peices[64], int team){
     Peice king = FindKing(peices, team);
 
@@ -124,5 +128,15 @@ bool IsMate(Peice peices[64], int team){
 
     return true;
 }
+
+bool IsCheck(Peice peices[64], int team){
+    Peice king = FindKing(peices, team);
+
+    king.attacked[0] = IsAttacked(peices, king, 1);
+    king.attacked[1] = IsAttacked(peices, king, 0);
+
+    return king.attacked[team];
+}
+
 
 #endif

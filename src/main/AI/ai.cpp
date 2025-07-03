@@ -159,9 +159,14 @@ float EvaluateMove(Peice peices[64], Move move){
 2-3 can happen more than once with depth value
 */
 
+float GetBestMoveReccursion(Peice peices[64], int team, int depth, Move* best){
+    
+}
+
 Move GetBestMove(Peice peices[64], int team){
     Move* best = new Move();
 
+    GetBestMoveReccursion(peices, team, 2, best);
 
     return *best;
 }

@@ -7,6 +7,7 @@
 #include "move.hpp"
 #include "ai.cpp"
 #include "mover.cpp"
+#include "audio.hpp"
 
 static int WIDTH = 720;
 static int HEIGHT = 720;
@@ -14,6 +15,15 @@ static int CELL_W = WIDTH / 8;
 static int CELL_H = HEIGHT / 8;
 static int TURN = 0;
 
+int GetPieceCount(Peice peices[64]){
+    int peiceCount = 0;
+    for(int i = 0; i < 64; ++i){
+        if(peices[i].peice != -1){
+            peiceCount += 1;
+        }
+    }
+    return peiceCount;
+}
 
 void DrawPeice(SDL_Renderer* renderer, SDL_Texture* textures[12],Peice peice){
     if (peice.team == -1 || peice.peice == -1){
@@ -100,7 +110,9 @@ SDL_Texture* LoadPeiceTexture(SDL_Renderer* renderer, int team, int peice){
 
 int main(){
 
-    SDL_Init(SDL_INIT_VIDEO);
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+    SDL_SetAppMetadata("Chess - SDL3", "1.0", "me.jonas.chesssdl3");
+
     SDL_Window* window = SDL_CreateWindow("Chess - Jonas", WIDTH, HEIGHT, SDL_WINDOW_VULKAN);
 
     if (window == nullptr){
@@ -115,8 +127,23 @@ int main(){
         return 1;
     }
 
-    SDL_SetWindowResizable(window, true);
+    SDL_AudioStream *stream = NULL;
 
+    stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL, NULL, NULL);
+    if (!stream) {
+        SDL_Log("Couldn't create audio stream: %s", SDL_GetError());
+        return 1;
+    }
+
+    SDL_ResumeAudioStreamDevice(stream);
+
+    Sound* gameStartSound = new Sound(stream, "./sounds/game-start.wav", false, false);
+    Sound* gameEndSound = new Sound(stream, "./sounds/game-end.wav", true, false);
+    Sound* checkSound = new Sound(stream, "./sounds/move-check.wav", true, false);
+    Sound* moveSound = new Sound(stream, "./sounds/move.wav", true, false);
+    Sound* takeSound = new Sound(stream, "./sounds/take.wav", true, false);
+
+    SDL_SetWindowResizable(window, true);
     bool running = true;
 
     Vector2 mouse;
@@ -173,13 +200,32 @@ int main(){
                         for(Move move : moves){
                             if(move.updatedPeices[0].position.x == x && move.safe){
                                 if(move.updatedPeices[0].position.y == y){
+                                    int oldCount = GetPieceCount(peices);
+
                                     std::vector<Peice> processedMove = ProcessMove(peices, move);
+
                                     TURN += 1;
                                     for (int i = 0; i < 64; ++i){
                                         peices[i] = processedMove[i];
                                     }
 
-                                    std::cout<< Evaluate(peices) << std::endl;
+                                    int newCount = GetPieceCount(peices);
+
+                                    if(IsCheck(peices, 0)){
+                                        checkSound->paused = false;
+                                        continue;
+                                    }
+
+                                    if(IsCheck(peices, 1)){
+                                        checkSound->paused = false;
+                                        continue;
+                                    }
+
+                                    if(oldCount > newCount){
+                                        takeSound->paused = false;
+                                    }else{
+                                        moveSound->paused = false;
+                                    }
                                 }
                             }
                         }
@@ -206,9 +252,16 @@ int main(){
                 if(event.key.scancode == SDL_SCANCODE_R){
                     ResetBoard(peices);
                     TURN = 0;
+                    gameStartSound->paused = false;
                 }
             }
         }
+
+        gameStartSound->Play();
+        gameEndSound->Play();
+        moveSound->Play();
+        takeSound->Play();
+        checkSound->Play();
 
         SDL_SetRenderDrawColor(renderer, 15, 15, 15, 255);
         SDL_RenderClear(renderer);
@@ -247,29 +300,32 @@ int main(){
             peices[i].attacked[1] = IsAttacked(peices, peices[i], 0);
         }
 
+
+        /*
         if(TURN%2 == 1){
             Move best = GetBestMove(peices, TURN%2);
-           // TURN += 1;
+            TURN += 1;
 
             if(best.updatedPeices.size() != 0){
                 std::cout << TURN%2 << std::endl;
             }
 
-            //std::vector<Peice> peices1 = ProcessMove(peices, best);
-
+            std::vector<Peice> peices1 = ProcessMove(peices, best);
             for (int i = 0; i < 64; ++i){
-              //  peices[i] = peices1[i];
+                peices[i] = peices1[i];
             }
         }
-     
+     */
 
         if(IsMate(peices, 0)){
             ResetBoard(peices);
+            gameEndSound->paused = false;
             std::cout<<"Black has won!" <<std::endl;
         }
 
         if(IsMate(peices, 1)){
             ResetBoard(peices);
+            gameEndSound->paused = false;
             std::cout<<"White has won!" <<std::endl;
         }
 
