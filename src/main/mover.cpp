@@ -106,6 +106,9 @@ bool IsAttacked(Peice peices[64], Peice peice, int team){
 bool IsMate(Peice peices[64], int team){
     Peice king = FindKing(peices, team);
 
+    king.attacked[0] = IsAttacked(peices, king, 1);
+    king.attacked[1] = IsAttacked(peices, king, 0);
+
     if(king.attacked[team]){
         for(int i = 0; i < 64; ++i){
             if (peices[i].team != team){

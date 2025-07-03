@@ -150,23 +150,94 @@ float EvaluateMove(Peice peices[64], Move move){
     return (processed);
 }
 
-/*
-1. Get all possible current moves
-2. Do enemy best move
-3. Get all possible moves
-4. See which one gives best evaluation
+static Move bestMove;
 
-2-3 can happen more than once with depth value
-*/
+float minimax(Peice peices[64], int depth, int turn){
+    if(IsMate(peices,0) || IsMate(peices,1) || depth == 0){
+        return Evaluate(peices);
+    }
 
-float GetBestMoveReccursion(Peice peices[64], int team, int depth, Move* best){
-    
+    float best;
+
+    if ((turn % 2) == 0){
+        best = -100000;
+        
+        std::vector<Move> allMoves = std::vector<Move>();
+
+        for(int i = 0; i < 64; ++i){
+            Peice peice = peices[i];
+            if(peice.team != turn%2){
+                continue;
+            }
+            std::vector<Move> moves = peice.GenerateMoves(peices);
+            
+            for(Move move : moves){
+                if(!SafeMove(peices, move)){
+                    continue;
+                }
+
+                allMoves.push_back(move);
+            }
+        }
+
+        for(Move move : allMoves){
+            std::vector<Peice> newBoard = ProcessMove(peices, move);
+            Peice newPeices[64];
+
+            for(int i = 0; i < 64; ++i){
+                newPeices[i] = newBoard[i];
+            }
+
+            float value = minimax(newPeices, depth-1, turn+1);
+
+            if (value > best){
+                best = value;
+                bestMove = move;
+            }
+        }
+    }else{
+        best = 100000;
+        
+        std::vector<Move> allMoves = std::vector<Move>();
+
+        for(int i = 0; i < 64; ++i){
+            Peice peice = peices[i];
+            if(peice.team != turn%2){
+                continue;
+            }
+            std::vector<Move> moves = peice.GenerateMoves(peices);
+            
+            for(Move move : moves){
+                if(!SafeMove(peices, move)){
+                    continue;
+                }
+                allMoves.push_back(move);
+            }
+        }
+
+        for(Move move : allMoves){
+            std::vector<Peice> newBoard = ProcessMove(peices, move);
+            Peice newPeices[64];
+
+            for(int i = 0; i < 64; ++i){
+                newPeices[i] = newBoard[i];
+            }
+
+            float value = minimax(newPeices, depth-1, turn+1);
+
+            if (value < best){
+                best = value;
+                bestMove = move;
+            }
+        }
+    }
+
+    return best;
 }
 
-Move GetBestMove(Peice peices[64], int team){
-    Move* best = new Move();
 
-    GetBestMoveReccursion(peices, team, 2, best);
-
-    return *best;
+Move GetBestMove(Peice peices[64], int team, int turn){
+    float best = minimax(peices, 2, turn);
+    std::cout << best << std::endl;
+    return bestMove;
 }
