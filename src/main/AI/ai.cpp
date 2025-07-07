@@ -1,194 +1,44 @@
 #include <iostream>
 #include "peice.hpp"
 #include "vector2.hpp"
-#include "mover.cpp"
+#include "board.hpp"
 #include <vector>
 
-void GetLegalMoveCount(Peice peices[64], int *moveCount){
-    for (int i = 0; i < 64; ++i){
-        if(peices[i].team == -1){
-            continue;
-        }
-
-        std::vector<Move> moves = peices[i].GenerateMoves(peices);
-        for(Move move : moves){
-            if(SafeMove(peices, move)){
-                moveCount[peices[i].team] += 1;
-            }
-        }
-    }
-}
-
-void GetBlockedPawnCount(Peice peices[64], int *blockCount){
-    for(int i = 0; i < 64; ++i){
-        if(peices[i].peice != 0){
-            continue;
-        }
-
-        int direction = (peices[i].team == 0 ? -1 : +1);
-        if(peices[i].position.y + direction < 0 || peices[i].position.y + direction > 7){
-            continue;
-        }
-
-        if(peices[(int)(peices[i].position.x + ((peices[i].position.y+direction)*8))].peice != -1){
-            blockCount[peices[i].team] += 1;
-        }
-    }
-}
-
-void GetDoubledPawnCount(Peice peices[64], int *doubleCount){
-    for(int x = 0; x < 8; ++x){
-        int pawnsB = 0;
-        int pawnsW = 0;
-        for(int y = 0; y < 8; ++y){
-            bool finish = false;
-
-            if(peices[x+y*8].peice == 0 && peices[x+y*8].team == 0){
-                pawnsW += 1;
-            }
-            if(peices[x+y*8].peice == 0 && peices[x+y*8].team == 1){
-                pawnsB += 1;
-            }
-
-            if(pawnsB >= 2){
-                doubleCount[1] += 1;
-                finish = true;
-            }
-            
-            if(pawnsW >= 2){
-                doubleCount[0] += 1;
-                finish = true;
-            }
-
-            if(finish){
-                break;
-            }
-        }
-    }
-}
-
-void GetIsolatedPawnCount(Peice peices[64], int *isolatedCount){
-    for(int x = 0; x < 8; ++x){
-        for(int y = 0; y < 8; ++y){
-            if(peices[x+y*8].peice != 0){
+std::vector<Move> GetAllMoves(Board board){
+    std::vector<Move> moves = std::vector<Move>();
+    for(int i = 0; i <64 ; ++i){
+        std::vector<Move> peiceMoves = board.peices[i].GenerateMoves(board.peices);
+        for(Move move : peiceMoves){
+            if(!board.IsSafeMove(move)){
                 continue;
             }
 
-            bool isolated = true;
-            
-            for(int y1 = 0; y1 < 8; ++y1){
-                if(x-1 >= 0){
-                    if(peices[x-1+y1*8].peice == 0 && peices[x-1+y1*8].team == peices[x+y*8].team){
-                        isolated = false;
-                    }
-                }
-
-                if(x+1 <= 7){
-                    if(peices[x+1+y1*8].peice == 0 && peices[x+1+y1*8].team == peices[x+y*8].team){
-                        isolated = false;
-                    }
-                }
-            }
-
-            if(isolated == false){
-                continue;
-            }else{
-                isolatedCount[peices[x+y*8].team] += 1;
-                break;
-            }
+            moves.push_back(move);
         }
     }
-}
 
-
-float Evaluate(Peice peices[64]){
-    int peiceTypes[12]={0,0,0,0,0,0,0,0,0,0,0,0};
-    int moveCount[2]={0,0};
-    int blocked[2]={0,0};
-    int isolated[2]={0,0};
-    int doubled[2]={0,0};
-
-    GetLegalMoveCount(peices, moveCount);
-    GetBlockedPawnCount(peices, blocked);
-    GetDoubledPawnCount(peices, doubled);
-    GetIsolatedPawnCount(peices, isolated);
-
-    for (int i = 0; i < 64;++i){
-        if(peices[i].peice == -1){
-            continue;
-        }
-        peiceTypes[peices[i].peice + (peices[i].team * 6)] += 1;
-    }
-
-    float materialScore = 200*(peiceTypes[5] - peiceTypes[11]) 
-    + 9*(peiceTypes[4] - peiceTypes[10])
-    + 5*(peiceTypes[3] - peiceTypes[9])
-    + 3*(peiceTypes[2] - peiceTypes[8] + peiceTypes[1] - peiceTypes[7])
-    + 1*(peiceTypes[0] - peiceTypes[6])
-    - 0.5*(blocked[0] - blocked[1] + doubled[0] - doubled[1] + isolated[0] - isolated[1])
-    + 0.1*(moveCount[0] - moveCount[1]);
-
-    return materialScore;
-}
-
-float EvaluateMove(Peice peices[64], Move move){
-    float original = Evaluate(peices);
-
-    Peice tempBoard[64];
-    for(int i = 0; i< 64; ++i){
-        tempBoard[i] = peices[i];
-    } 
-
-    std::vector<Peice> peicesVec = ProcessMove(tempBoard, move);
-
-    for(int i = 0; i < 64; ++i){
-        tempBoard[i] = peicesVec[i];
-    }
-
-    float processed = Evaluate(tempBoard);
-
-    return (processed);
+    return moves;
 }
 
 static Move bestMove;
 
-float minimax(Peice peices[64], int depth, int turn){
-    if(IsMate(peices,0) || IsMate(peices,1) || depth == 0){
-        return Evaluate(peices);
+
+float minimax(Board board, int depth){
+    if(board.IsMate() != -1 || depth == 0){
+        return board.Evaluate();
     }
 
     float best;
 
-    if ((turn % 2) == 0){
+    if (board.turn == 1){
         best = -100000;
         
-        std::vector<Move> allMoves = std::vector<Move>();
+        std::vector<Move> moves = GetAllMoves(board);
 
-        for(int i = 0; i < 64; ++i){
-            Peice peice = peices[i];
-            if(peice.team != turn%2){
-                continue;
-            }
-            std::vector<Move> moves = peice.GenerateMoves(peices);
-            
-            for(Move move : moves){
-                if(!SafeMove(peices, move)){
-                    continue;
-                }
+        for(Move  move : moves){
+            board.MakeMove(move);
 
-                allMoves.push_back(move);
-            }
-        }
-
-        for(Move move : allMoves){
-            std::vector<Peice> newBoard = ProcessMove(peices, move);
-            Peice newPeices[64];
-
-            for(int i = 0; i < 64; ++i){
-                newPeices[i] = newBoard[i];
-            }
-
-            float value = minimax(newPeices, depth-1, turn+1);
+            float value = minimax(board, depth-1);
 
             if (value > best){
                 best = value;
@@ -197,33 +47,13 @@ float minimax(Peice peices[64], int depth, int turn){
         }
     }else{
         best = 100000;
-        
-        std::vector<Move> allMoves = std::vector<Move>();
 
-        for(int i = 0; i < 64; ++i){
-            Peice peice = peices[i];
-            if(peice.team != turn%2){
-                continue;
-            }
-            std::vector<Move> moves = peice.GenerateMoves(peices);
-            
-            for(Move move : moves){
-                if(!SafeMove(peices, move)){
-                    continue;
-                }
-                allMoves.push_back(move);
-            }
-        }
+        std::vector<Move> moves = GetAllMoves(board);
 
-        for(Move move : allMoves){
-            std::vector<Peice> newBoard = ProcessMove(peices, move);
-            Peice newPeices[64];
+        for(Move move : moves){
+            board.MakeMove(move);
 
-            for(int i = 0; i < 64; ++i){
-                newPeices[i] = newBoard[i];
-            }
-
-            float value = minimax(newPeices, depth-1, turn+1);
+            float value = minimax(board, depth-1);
 
             if (value < best){
                 best = value;
@@ -236,8 +66,7 @@ float minimax(Peice peices[64], int depth, int turn){
 }
 
 
-Move GetBestMove(Peice peices[64], int team, int turn){
-    float best = minimax(peices, 2, turn);
-    std::cout << best << std::endl;
+Move GetBestMove(Board board){
+    minimax(board, 2);
     return bestMove;
 }

@@ -6,5 +6,6 @@ class Peice;
 
 struct Move{
     std::vector<Peice> updatedPeices;
+    std::vector<Peice> preupdatedPeices;
     bool safe = true;
 }; 

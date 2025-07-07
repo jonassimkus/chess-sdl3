@@ -49,6 +49,8 @@ int Peice::GetOtherTeam(){
     return 1;
 }
 
+
+/* using more optimized method deprocated </3 */
 std::vector<Move> Peice::GenerateMoves(Peice board[64]){
     std::vector<Move> moves = std::vector<Move>();
     std::vector<Peice> peices;

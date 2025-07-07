@@ -6,25 +6,14 @@
 #include "vector2.hpp"
 #include "move.hpp"
 #include "ai.cpp"
-#include "mover.cpp"
 #include "audio.hpp"
+#include "board.cpp"
 
 static int WIDTH = 720;
 static int HEIGHT = 720;
 static int CELL_W = WIDTH / 8;
 static int CELL_H = HEIGHT / 8;
-static int TURN = 0;
-static int WINNER = -1;
-
-int GetPieceCount(Peice peices[64]){
-    int peiceCount = 0;
-    for(int i = 0; i < 64; ++i){
-        if(peices[i].peice != -1){
-            peiceCount += 1;
-        }
-    }
-    return peiceCount;
-}
+static bool AI = true;
 
 void DrawPeice(SDL_Renderer* renderer, SDL_Texture* textures[12],Peice peice){
     if (peice.team == -1 || peice.peice == -1){
@@ -38,39 +27,6 @@ void DrawPeice(SDL_Renderer* renderer, SDL_Texture* textures[12],Peice peice){
     SDL_RenderTexture(renderer, texture, &src, &dst);
 }
 
-void ResetBoard(Peice *peices){
-    WINNER = -1; 
-    TURN = 0;
-
-    peices[0] = Peice( 0, 0, 1, 3,true);
-    peices[7] = Peice( 7, 0, 1, 3,true);
-    peices[1] = Peice( 1, 0, 1, 1,true);
-    peices[6] = Peice( 6, 0, 1, 1,true);
-    peices[2] = Peice( 2, 0, 1, 2,true);
-    peices[5] = Peice( 5, 0, 1, 2,true);
-    peices[3] = Peice( 3, 0, 1, 4,true);
-    peices[4] = Peice( 4, 0, 1, 5,true);
-
-    peices[0+(7*8)] = Peice( 0, 7, 0, 3,true);
-    peices[7+(7*8)] = Peice( 7, 7, 0, 3,true);
-    peices[1+(7*8)] = Peice( 1, 7, 0, 1,true);
-    peices[6+(7*8)] = Peice( 6, 7, 0, 1,true);
-    peices[2+(7*8)] = Peice( 2, 7, 0, 2,true);
-    peices[5+(7*8)] = Peice( 5, 7, 0, 2,true);
-    peices[3+(7*8)] = Peice( 3, 7, 0, 4,true);
-    peices[4+(7*8)] = Peice( 4, 7, 0, 5,true);
-
-    for(int x = 0; x < 8; ++x){
-        peices[x+8] = Peice( x, 1, 1, 0 ,true);
-        peices[x+(6*8)] = Peice( x, 6, 0, 0, true);
-    }
-
-    for(int y = 0; y < 4; ++y){
-        for(int x = 0; x < 8; ++x){
-            peices[x+((y+2)*8)] = Peice( x, y, -1, -1);
-        }
-    } 
-}
 
 SDL_Texture* LoadPeiceTexture(SDL_Renderer* renderer, int team, int peice){
     SDL_Surface* surface;
@@ -176,8 +132,8 @@ int main(){
 
     Peice selectedPeice;
     std::vector<Move> moves;
-    Peice peices[64] = {};
-    ResetBoard(peices);
+
+    Board board;
 
     SDL_Texture* resetText = SDL_CreateTextureFromSurface(renderer, IMG_Load("./textures/reset.png"));
     SDL_FRect resetRect = {WIDTH/2 - CELL_W*1.5f, HEIGHT/2 - CELL_H/2.f, CELL_W*3.f, (float)CELL_H};
@@ -204,7 +160,7 @@ int main(){
                 }                
 
                 if (event.button.button == 1) {
-                    if(WINNER == -1){
+                    if(board.winner == -1){
                         showResetText = false;
                     }
                     
@@ -215,31 +171,17 @@ int main(){
                         for(Move move : moves){
                             if(move.updatedPeices[0].position.x == x && move.safe){
                                 if(move.updatedPeices[0].position.y == y){
-                                    int oldCount = GetPieceCount(peices);
+                                    int oldCount = board.GetPeiceCount();
 
-                                    std::vector<Peice> processedMove = ProcessMove(peices, move);
+                                    board.MakeMove(move);
 
-                                    TURN += 1;
-                                    for (int i = 0; i < 64; ++i){
-                                        peices[i] = processedMove[i];
-                                    }
+                                    int newCount = board.GetPeiceCount();
 
-                                    int newCount = GetPieceCount(peices);
-
-                                    if(IsMate(peices, 0)){
+                                    if(board.IsMate() != -1){
                                         continue;
                                     }
 
-                                    if(IsMate(peices, 1)){
-                                        continue;
-                                    }
-
-                                    if(IsCheck(peices, 0)){
-                                        checkSound->paused = false;
-                                        continue;
-                                    }
-
-                                    if(IsCheck(peices, 1)){
+                                    if(board.IsCheck() != -1){
                                         checkSound->paused = false;
                                         continue;
                                     }
@@ -257,7 +199,7 @@ int main(){
                         select.y = -1;
                     }
                     else{
-                        if(peices[x+y*8].peice != -1 && peices[x+y*8].team == TURN%2 && WINNER == -1){
+                        if(board.turn == board.GetPeice(x,y).team && board.winner == -1){
                             select.x = x;
                             select.y = y;
                         }
@@ -276,9 +218,14 @@ int main(){
 
             if(event.type == SDL_EVENT_KEY_DOWN){
                 if(event.key.scancode == SDL_SCANCODE_R){
-                    ResetBoard(peices);
+                    board.ResetBoard();
                     showResetText = false;
                     gameStartSound->paused = false;
+                }
+
+                if(event.key.scancode == SDL_SCANCODE_Q){
+                    select = {-1,-1};
+                    board.UnmakeMove();
                 }
             }
         }
@@ -304,7 +251,7 @@ int main(){
                 boardSquare.w = CELL_W;
                 boardSquare.h = CELL_H;
                 SDL_RenderFillRect(renderer, &boardSquare);
-                Peice peice = peices[x+(y*8)];
+                Peice peice = board.GetPeice(x, y);
                 
                 if(select.x != x || select.y != y){
                     DrawPeice(renderer, peiceTextures, peice);
@@ -316,51 +263,64 @@ int main(){
         }
 
         if(selectedPeice.peice != -1){
-            moves = selectedPeice.GenerateMoves(peices);
+           moves = selectedPeice.GenerateMoves(board.peices);
         }else{
             moves.clear();
         }
 
         for(int i = 0; i < 64; ++i){
-            peices[i].attacked[0] = IsAttacked(peices, peices[i], 1);
-            peices[i].attacked[1] = IsAttacked(peices, peices[i], 0);
+            board.peices[i].attacked[0] = board.IsAttacked(board.peices[i], 1);
+            board.peices[i].attacked[1] = board.IsAttacked(board.peices[i], 0);
         }
 
+        if(board.turn == 1 && AI){
+            Move best = GetBestMove(board);
 
-        if(TURN%2 == 1){
-            TURN += 1;
-            Move best = GetBestMove(peices, TURN%2, TURN);
+            int oldCount = board.GetPeiceCount();
 
-            std::vector<Peice> peices1 = ProcessMove(peices, best);
-            for (int i = 0; i < 64; ++i){
-                peices[i] = peices1[i];
+            board.MakeMove(best);
+
+            int newCount = board.GetPeiceCount();
+
+            if(board.IsMate() != -1){
+                continue;
+            }
+
+            if(board.IsCheck() != -1){
+                checkSound->paused = false;
+                continue;
+            }
+
+            if(oldCount > newCount){
+                takeSound->paused = false;
+            }else{
+                moveSound->paused = false;
             }
         }
 
-        if(IsMate(peices, 0) && WINNER == -1){
-            WINNER = 1;
+        if(board.IsMate() != -1 && board.winner == -1){
+            board.winner = 1;
             gameEndSound->paused = false;
             std::cout<<"Black has won!" <<std::endl;
             showResetText = true;
         }
 
-        if(IsMate(peices, 1) && WINNER == -1){
-            WINNER = 0;
+        if(board.IsMate() != -1 && board.winner == -1){
+            board.winner = 0;
             gameEndSound->paused = false;
             std::cout<<"White has won!" <<std::endl;
             showResetText = true;
         }
 
-
         for(int i = 0; i < moves.size(); ++i){
             Vector2 movePos = moves[i].updatedPeices[0].position;
 
-            if(!SafeMove(peices, moves[i])){
+            if(!board.IsSafeMove(moves[i])){
                 moves[i].safe = false;
                 continue;
             }
 
-            if(peices[(int)(movePos.x + movePos.y*8)].peice != -1){
+            if(board.GetPeice(movePos.x, movePos.y).peice != -1){
                 SDL_FRect dst = {moves[i].updatedPeices[0].position.x*CELL_W, moves[i].updatedPeices[0].position.y*CELL_H, (float)CELL_W, (float)CELL_H};
                 SDL_RenderTexture(renderer, circle, NULL, &dst);
             }else{
