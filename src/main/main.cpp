@@ -5,7 +5,6 @@
 #include "peice.cpp"
 #include "vector2.hpp"
 #include "move.hpp"
-#include "ai.cpp"
 #include "audio.hpp"
 #include "board.cpp"
 
@@ -271,31 +270,6 @@ int main(){
         for(int i = 0; i < 64; ++i){
             board.peices[i].attacked[0] = board.IsAttacked(board.peices[i], 1);
             board.peices[i].attacked[1] = board.IsAttacked(board.peices[i], 0);
-        }
-
-        if(board.turn == 1 && AI){
-            Move best = GetBestMove(board);
-
-            int oldCount = board.GetPeiceCount();
-
-            board.MakeMove(best);
-
-            int newCount = board.GetPeiceCount();
-
-            if(board.IsMate() != -1){
-                continue;
-            }
-
-            if(board.IsCheck() != -1){
-                checkSound->paused = false;
-                continue;
-            }
-
-            if(oldCount > newCount){
-                takeSound->paused = false;
-            }else{
-                moveSound->paused = false;
-            }
         }
 
         if(board.IsMate() != -1 && board.winner == -1){

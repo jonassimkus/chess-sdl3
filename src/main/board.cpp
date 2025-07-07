@@ -119,8 +119,9 @@ Peice Board::GetPeice(int x, int y){
 }
 
 int Board::GetPeiceCount(){
-    int whites, blacks;
-
+    int whites = 0;
+    int blacks = 0;
+    
     for(int i = 0; i < 64; ++i){
         if(peices[i].team == 0){
             whites += 1;
